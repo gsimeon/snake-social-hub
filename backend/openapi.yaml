@@ -1,0 +1,304 @@
+openapi: 3.0.0
+info:
+  title: Snake Social Hub API
+  version: 1.0.0
+  description: API specification based on frontend client requirements.
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+paths:
+  /auth/login:
+    post:
+      summary: Login user
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+      responses:
+        '200':
+          description: Login response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /auth/signup:
+    post:
+      summary: Register new user
+      operationId: signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+      responses:
+        '200':
+          description: Signup response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      operationId: logout
+      responses:
+        '200':
+          description: Logout response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+
+  /auth/me:
+    get:
+      summary: Get current logged in user
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Current user response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/User'
+                    nullable: true
+                  error:
+                    type: string
+
+  /leaderboard:
+    get:
+      summary: Get leaderboard entries
+      operationId: getLeaderboard
+      parameters:
+        - in: query
+          name: mode
+          schema:
+            $ref: '#/components/schemas/GameMode'
+          required: false
+          description: Filter by game mode
+      responses:
+        '200':
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LeaderboardEntry'
+                  error:
+                    type: string
+    post:
+      summary: Submit a score
+      operationId: submitScore
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - score
+                - mode
+              properties:
+                score:
+                  type: integer
+                mode:
+                  $ref: '#/components/schemas/GameMode'
+      responses:
+        '200':
+          description: Score submission response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/LeaderboardEntry'
+                  error:
+                    type: string
+
+  /players:
+    get:
+      summary: Get active players (spectating)
+      operationId: getActivePlayers
+      responses:
+        '200':
+          description: Active players list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ActivePlayer'
+                  error:
+                    type: string
+
+  /players/{playerId}:
+    get:
+      summary: Get specific player state
+      operationId: getPlayerState
+      parameters:
+        - in: path
+          name: playerId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Player state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ActivePlayer'
+                    nullable: true
+                  error:
+                    type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        createdAt:
+          type: string
+          format: date-time
+
+    GameMode:
+      type: string
+      enum:
+        - passthrough
+        - walls
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        score:
+          type: integer
+        mode:
+          $ref: '#/components/schemas/GameMode'
+        date:
+          type: string
+          format: date
+
+    Position:
+      type: object
+      properties:
+        x:
+          type: integer
+        y:
+          type: integer
+
+    Direction:
+      type: string
+      enum:
+        - UP
+        - DOWN
+        - LEFT
+        - RIGHT
+
+    ActivePlayer:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        score:
+          type: integer
+        mode:
+          $ref: '#/components/schemas/GameMode'
+        snake:
+          type: array
+          items:
+            $ref: '#/components/schemas/Position'
+        food:
+          $ref: '#/components/schemas/Position'
+        direction:
+          $ref: '#/components/schemas/Direction'
+        startedAt:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user:
+          $ref: '#/components/schemas/User'
+        error:
+          type: string
